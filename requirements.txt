@@ -1,7 +1,7 @@
-bcrypt==3.1.4
+bcrypt==3.1.7
 beautifulsoup4==4.6.3
-certifi==2018.11.29
-cffi==1.11.5
+certifi==2019.9.11
+cffi==1.13.1
 chardet==3.0.4
 Click==7.0
 Flask==1.0.2
@@ -13,12 +13,12 @@ idna==2.7
 itsdangerous==1.1.0
 Jinja2==2.10
 lxml==4.2.5
-MarkupSafe==1.1.0
-Pillow==6.2.0
+MarkupSafe==1.1.1
+Pillow==6.2.1
 pycparser==2.19
 requests==2.20.1
 six==1.11.0
 SQLAlchemy==1.2.14
 urllib3==1.24.1
-Werkzeug==0.14.1
+Werkzeug==0.16.0
 WTForms==2.2.1
