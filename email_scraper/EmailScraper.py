@@ -66,7 +66,7 @@ class EmailScraper:
                     if emails is None:
                         continue
                     all_email.extend((emails, url))
-                    email_number = email_number + 1
+                    email_number = len(emails) + email_number
                     print(email_number)
 
             endtime = time.time()
