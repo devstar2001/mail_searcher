@@ -14,55 +14,66 @@ class EmailScraper:
     def search(self):
         temp_query = self.query + " email"
         temp_query = "+".join(temp_query.split())
+        starttime = time.time()
 
-        url = "https://www.google.com/search?q={0}".format(temp_query)
-
-        session = requests_retry_session()
-
-        try:
-            # sending an http get request with specific url and get a response
-            starttime = time.time()
-            response = session.get(url)
-            if response is None:
-                return
-        except requests.exceptions.ConnectionError:
-            print("Connection Error " + url)
-            return "Connection Error"
-        except requests.exceptions.Timeout:
-            print("Request timed out" + url)
-            return "Request timed out"
-        except requests.exceptions.TooManyRedirects:
-            print("Too many redirects " + url)
-            return
-        except requests.exceptions.HTTPError:
-            print("Bad Request." + url)
-            return
-        except requests.exceptions.InvalidURL:
-            print("Invalid URL. " + url)
-            return
-        except requests.exceptions.InvalidSchema:
-            print("Invalid Schema." + url)
-            return
-        except requests.exceptions.MissingSchema:
-            print("Missing Schema URL. " + url)
-            return
-        except requests.exceptions.RetryError:
-            print("Retry Error " + url)
-            return
-
-        soup = BeautifulSoup(response.text, 'lxml')
-
+        start = 0
+        num = 20
         all_email = []
-        for tag in soup.find_all('a'):
-            if '/url?q=' in tag['href']:
-                url = tag['href'].split('/url?q=')[1]
-                emails = self.get_emails(url, session)
-                if emails is None:
-                    continue
-                all_email.extend((emails, url))
+        email_number = 0
+        session = requests_retry_session()
+        while True:
+            params = "&start={}&num={}".format(start, num)
+            url = "https://www.google.com/search?q={0}".format(temp_query) + params
 
-        endtime = time.time()
-        return all_email, (endtime - starttime)
+            try:
+                # sending an http get request with specific url and get a response
+
+                response = session.get(url)
+                if response is None:
+                    return
+            except requests.exceptions.ConnectionError:
+                print("Connection Error " + url)
+                return "Connection Error"
+            except requests.exceptions.Timeout:
+                print("Request timed out" + url)
+                return "Request timed out"
+            except requests.exceptions.TooManyRedirects:
+                print("Too many redirects " + url)
+                return
+            except requests.exceptions.HTTPError:
+                print("Bad Request." + url)
+                return
+            except requests.exceptions.InvalidURL:
+                print("Invalid URL. " + url)
+                return
+            except requests.exceptions.InvalidSchema:
+                print("Invalid Schema." + url)
+                return
+            except requests.exceptions.MissingSchema:
+                print("Missing Schema URL. " + url)
+                return
+            except requests.exceptions.RetryError:
+                print("Retry Error " + url)
+                return
+
+            soup = BeautifulSoup(response.text, 'lxml')
+
+
+            for tag in soup.find_all('a'):
+                if '/url?q=' in tag['href']:
+                    url = tag['href'].split('/url?q=')[1]
+                    emails = self.get_emails(url, session)
+                    if emails is None:
+                        continue
+                    all_email.extend((emails, url))
+                    email_number = email_number + 1
+                    print(email_number)
+
+            endtime = time.time()
+            if len(all_email) >= 100:
+                break
+            start = start + num
+        return all_email[:100], (endtime - starttime)
 
     def get_emails(self, url, session):
 
