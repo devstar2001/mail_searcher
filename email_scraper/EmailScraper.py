@@ -17,7 +17,7 @@ class EmailScraper:
         starttime = time.time()
 
         start = 0
-        num = 20
+        num = 30
         all_email = []
         email_number = 0
         session = requests_retry_session()
