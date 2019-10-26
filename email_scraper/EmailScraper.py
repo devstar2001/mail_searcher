@@ -70,7 +70,7 @@ class EmailScraper:
                     print(email_number)
 
             endtime = time.time()
-            if len(email_number) > 100:
+            if email_number > 100:
                 break
             start = start + num
         return all_email, (endtime - starttime)
