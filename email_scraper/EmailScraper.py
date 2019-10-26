@@ -63,11 +63,13 @@ class EmailScraper:
                 if '/url?q=' in tag['href']:
                     url = tag['href'].split('/url?q=')[1]
                     emails = self.get_emails(url, session)
-                    if emails is None:
+                    if emails is None or len(emails) == 0:
                         continue
                     all_email.extend((emails, url))
-                    email_number = len(emails) + email_number
+                    email_number = email_number + len(emails)
                     print(email_number)
+                    if email_number > 100:
+                        break
 
             endtime = time.time()
             if email_number > 100:
