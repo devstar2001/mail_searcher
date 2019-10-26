@@ -70,10 +70,10 @@ class EmailScraper:
                     print(email_number)
 
             endtime = time.time()
-            if len(all_email) >= 100:
+            if len(all_email) >= 50:
                 break
             start = start + num
-        return all_email[:100], (endtime - starttime)
+        return all_email, (endtime - starttime)
 
     def get_emails(self, url, session):
 
