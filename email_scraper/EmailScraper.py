@@ -85,7 +85,7 @@ class EmailScraper:
                 break
             start = start + num
             delta_time = endtime - starttime
-            if delta_time > 80:
+            if delta_time > 120:
                 break
         return all_email, delta_time
 
