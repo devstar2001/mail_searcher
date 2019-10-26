@@ -4,31 +4,13 @@ from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import time
-import signal
-from contextlib import contextmanager
+from func_timeout import func_timeout, FunctionTimedOut
+
 
 class EmailScraper:
 
     def __init__(self, query):
         self.query = query
-
-    def raise_timeout(self, signum, frame):
-        raise TimeoutError
-
-    @contextmanager
-    def timeout(self, time):
-        # Register a function to raise a TimeoutError on the signal.
-        signal.signal(signal.SIGALRM, self.raise_timeout)
-        signal.alarm(time)
-
-        try:
-            yield
-        except TimeoutError:
-            pass
-        finally:
-            # Unregister the signal so it won't be triggered
-            # if the timeout is not reached.
-            signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
     def search(self):
         temp_query = self.query + " email"
@@ -40,7 +22,7 @@ class EmailScraper:
         all_email = []
         email_number = 0
         session = requests_retry_session()
-        with self.timeout(60):
+        while True:
             params = "&start={}&num={}".format(start, num)
             url = "https://www.google.com/search?q={0}".format(temp_query) + params
 
@@ -81,81 +63,89 @@ class EmailScraper:
             for tag in soup.find_all('a'):
                 if '/url?q=' in tag['href']:
                     url = tag['href'].split('/url?q=')[1]
-                    emails = self.get_emails(url, session)
+                    emails = []
+                    try:
+                        emails = func_timeout(15, self.get_emails, args=(url, session))
+                    except FunctionTimedOut:
+                        print("doit('arg1', 'arg2') could not complete within 5 seconds and was terminated.\n")
+                    except Exception as e:
+                    # Handle any exceptions that doit might raise here
+                        print('err')
+                    # emails = self.get_emails(url, session)
                     if emails is None or len(emails) == 0:
                         continue
                     all_email.extend((emails, url))
                     email_number = email_number + len(emails)
-                    print(email_number)
+                    print(email_number, emails)
                     if email_number > 100:
                         break
 
             endtime = time.time()
-            # if email_number > 100:
-            #     break
+            if email_number > 100:
+                break
             start = start + num
-        delta_time = endtime - starttime
-
+            delta_time = endtime - starttime
+            if delta_time > 80:
+                break
         return all_email, delta_time
 
     def get_emails(self, url, session):
-        email_list = []
 
-        with self.timeout(3):
-            try:
-                # sending an http get request with specific url and get a response
-                response = session.get(url)
+        try:
+            # sending an http get request with specific url and get a response
+            print(url)
+            response = session.get(url)
 
-            except requests.exceptions.ConnectionError:
-                print("Connection Error " + url)
-                return
-            except requests.exceptions.HTTPError:
-                print("Bad Request. " + url)
-                return
-            except requests.exceptions.Timeout:
-                print("Request timed out" + url)
-                return
-            except requests.exceptions.TooManyRedirects:
-                print("Too many redirects " + url)
-                return
-            except requests.exceptions.InvalidURL:
-                print("Invalid URL. " + url)
-                return
-            except requests.exceptions.InvalidSchema:
-                print("Invalid Schema." + url)
-                response = session.get("http://" + url)
-            except requests.exceptions.MissingSchema:
-                print("Missing Schema URL. " + url)
-                response = session.get("http://" + url)
-            except requests.exceptions.RetryError:
-                print("Retry Error " + url)
-                return
+        except requests.exceptions.ConnectionError:
+            print("Connection Error " + url)
+            return
+        except requests.exceptions.HTTPError:
+            print("Bad Request. " + url)
+            return
+        except requests.exceptions.Timeout:
+            print("Request timed out" + url)
+            return
+        except requests.exceptions.TooManyRedirects:
+            print("Too many redirects " + url)
+            return
+        except requests.exceptions.InvalidURL:
+            print("Invalid URL. " + url)
+            return
+        except requests.exceptions.InvalidSchema:
+            print("Invalid Schema." + url)
+            response = session.get("http://" + url)
+        except requests.exceptions.MissingSchema:
+            print("Missing Schema URL. " + url)
+            response = session.get("http://" + url)
+        except requests.exceptions.RetryError:
+            print("Retry Error " + url)
+            return
 
-            if response is None:
-                return
-            # email pattern to match with - name@domain.com
-            email_pattern = "[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+" # 1st pattern
-            # making the regex workable - compile it with ignore case
-            email_regex = re.compile(email_pattern, re.IGNORECASE)
-            # match all the email in html response with regex pattern and get a set of emails
-            # response.text returns html as string
-            email_list = email_regex.findall(response.text)
+        if response is None:
+            return
+        # email pattern to match with - name@domain.com
+        email_pattern = "[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+" # 1st pattern
+        # making the regex workable - compile it with ignore case
+        email_regex = re.compile(email_pattern, re.IGNORECASE)
+        # match all the email in html response with regex pattern and get a set of emails
+        # response.text returns html as string
+        email_list = email_regex.findall(response.text)
 
-            # email pattern to match with - name @ domain.com
-            email_pattern = "[a-zA-Z0-9._-]+\s@\s[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+" # 2nd pattern
-            # making the regex workable - compile it with ignore case
-            email_regex = re.compile(email_pattern, re.IGNORECASE)
-            # match all the email in html response with regex pattern and get a set of emails
-            # response.text returns html as string
-            email_list.extend(email_regex.findall(response.text))
+        # email pattern to match with - name @ domain.com
+        email_pattern = "[a-zA-Z0-9._-]+\s@\s[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+" # 2nd pattern
+        # making the regex workable - compile it with ignore case
+        email_regex = re.compile(email_pattern, re.IGNORECASE)
+        # match all the email in html response with regex pattern and get a set of emails
+        # response.text returns html as string
+        email_list.extend(email_regex.findall(response.text))
 
-            # email pattern to match with - name at domain.com
-            email_pattern = "[a-zA-Z0-9._-]+\sat\s[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+" # 3rd pattern
-            # making the regex workable - compile it with ignore case
-            email_regex = re.compile(email_pattern, re.IGNORECASE)
-            # match all the email in html response with regex pattern and get a set of emails
-            # response.text returns html as string
-            email_list.extend(email_regex.findall(response.text))
+        # email pattern to match with - name at domain.com
+        email_pattern = "[a-zA-Z0-9._-]+\sat\s[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+" # 3rd pattern
+        # making the regex workable - compile it with ignore case
+        email_regex = re.compile(email_pattern, re.IGNORECASE)
+        # match all the email in html response with regex pattern and get a set of emails
+        # response.text returns html as string
+        email_list.extend(email_regex.findall(response.text))
 
         return set(self.strip(email_list))
 
