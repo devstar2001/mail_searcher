@@ -14,7 +14,7 @@ func-timeout==4.3.5
 idna==2.8
 itsdangerous==1.1.0
 Jinja2==2.10.3
-lxml==4.4.1
+lxml==4.6.3
 MarkupSafe==1.1.1
 Pillow==6.2.1
 pycparser==2.19
