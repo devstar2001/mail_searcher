@@ -13,7 +13,7 @@ Flask-WTF==0.14.2
 func-timeout==4.3.5
 idna==2.8
 itsdangerous==1.1.0
-Jinja2==2.10.3
+Jinja2==2.11.3
 lxml
 MarkupSafe==1.1.1
 Pillow
